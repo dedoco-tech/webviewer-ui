@@ -31,6 +31,7 @@ const TextSignature = ({ isModalOpen, isTabPanelSelected, createSignature }) => 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDefaultValue, setIsDefaultValue] = useState(true);
   const [fontColor, setFontColor] = useState('#000000');
+  const [shouldSaveSignature, setShouldSaveSignature] = useState(false);
   const inputRef = useRef();
   const canvasRef = useRef();
   const textDivsRef = useRef([]);
@@ -117,6 +118,18 @@ const TextSignature = ({ isModalOpen, isTabPanelSelected, createSignature }) => 
     };
   }, [isDefaultValue]);
 
+  useEffect(() => {
+    const listener = event => {
+      setShouldSaveSignature(event.detail);
+    };
+
+    window.parent.addEventListener('shouldSaveSignatureChanged', listener);
+
+    return () => {
+      window.parent.removeEventListener('shouldSaveSignatureChanged', listener);
+    };
+  }, []);
+
   const setSignature = () => {
     const signatureTool = core.getTool('AnnotationCreateSignature');
     const canvas = canvasRef.current;
@@ -132,6 +145,7 @@ const TextSignature = ({ isModalOpen, isTabPanelSelected, createSignature }) => 
   const handleSaveSignatureChange = e => {
     const newValue = e.target.checked;
     window.parent.handleSaveSignature?.(newValue);
+    setShouldSaveSignature(newValue);
   };
 
   const handleInputChange = e => {
@@ -208,7 +222,12 @@ const TextSignature = ({ isModalOpen, isTabPanelSelected, createSignature }) => 
           justifyContent: 'space-between',
         }}
       >
-        <Choice className={`checkbox`} label={'Save Signature'} onChange={handleSaveSignatureChange} />
+        <Choice
+          className={`checkbox`}
+          checked={shouldSaveSignature}
+          label={'Save Signature'}
+          onChange={handleSaveSignatureChange}
+        />
         <button
           className="signature-create"
           onClick={createSignature}

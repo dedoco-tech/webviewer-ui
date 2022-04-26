@@ -41,6 +41,10 @@ const SignatureModal = () => {
     if (isOpen) {
       dispatch(actions.closeElements(['printModal', 'loadingModal', 'progressModal', 'errorModal']));
     }
+
+    window.parent.addEventListener('SignatureModalOpened', () => {
+      dispatch(actions.openElement('signatureModal'));
+    });
   }, [dispatch, isOpen]);
 
   const closeModal = () => {
@@ -55,9 +59,15 @@ const SignatureModal = () => {
     if (!(await signatureTool.isEmptySignature())) {
       signatureTool.saveSignatures(signatureTool.annot);
 
+      console.log('signatureTool.annot: ', signatureTool.annot);
       dispatch(actions.setSelectedDisplayedSignatureIndex(displayedSignatures.length));
       core.setToolMode('AnnotationCreateSignature');
 
+      console.log('signatureTool.hasLocation: ', signatureTool.hasLocation());
+      console.log('displayedSignatures.length: ', displayedSignatures.length);
+      console.log('signatureTool: ', signatureTool);
+
+      signatureTool.
       if (signatureTool.hasLocation()) {
         await signatureTool.addSignature();
       } else {

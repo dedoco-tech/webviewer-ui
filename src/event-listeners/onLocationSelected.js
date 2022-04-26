@@ -14,6 +14,7 @@ export default store => async () => {
     store.dispatch(actions.openElement('toolsOverlay'));
 
     const isToolsOverlayDisabled = selectors.isElementDisabled(store.getState(), 'toolsOverlay') || selectors.isElementDisabled(store.getState(), 'toolsHeader');
+    console.log('ELSE: ', store.getState());
     const savedSignatures = selectors.getSavedSignatures(store.getState(), 'signatureOverlay');
     if (savedSignatures.length === 0 || isToolsOverlayDisabled) {
       store.dispatch(actions.openElement('signatureModal'));

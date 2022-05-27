@@ -60,8 +60,6 @@ const SignatureModal = () => {
 
       if (signatureTool.hasLocation()) {
         await signatureTool.addSignature();
-      } else {
-        await signatureTool.showPreview();
       }
       dispatch(actions.closeElement('signatureModal'));
     }

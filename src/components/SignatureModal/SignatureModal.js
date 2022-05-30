@@ -61,6 +61,9 @@ const SignatureModal = () => {
       if (signatureTool.hasLocation()) {
         await signatureTool.addSignature();
       }
+
+      signatureTool.annot = null; // Clears the annotation on cursor for sign all feature
+
       dispatch(actions.closeElement('signatureModal'));
     }
   };

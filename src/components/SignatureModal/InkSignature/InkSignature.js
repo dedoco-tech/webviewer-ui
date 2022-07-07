@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import setToolStyles from 'helpers/setToolStyles';
 import { Swipeable } from 'react-swipeable';
+import { Choice } from '@pdftron/webviewer-react-toolkit';
 import ColorPalette from 'components/ColorPalette';
 
 import core from 'core';
@@ -22,11 +23,7 @@ const propTypes = {
   isTabPanelSelected: PropTypes.bool,
 };
 
-const InkSignature = ({
-  isModalOpen,
-  isTabPanelSelected,
-  createSignature,
-}) => {
+const InkSignature = ({ isModalOpen, isTabPanelSelected, createSignature }) => {
   const canvasRef = useRef();
   // the ref holds the path points of the underlying freehand annotation
   // when users switch to a different tab the underlying signature annotation will change
@@ -37,8 +34,21 @@ const InkSignature = ({
   const [t] = useTranslation();
   const [dimension, setDimension] = useState({});
   const [drawn, setDrawn] = useState(false);
+  const [shouldSaveSignature, setShouldSaveSignature] = useState(false);
 
   const forceUpdate = useForceUpdate();
+
+  useEffect(() => {
+    const listener = event => {
+      setShouldSaveSignature(event.detail);
+    };
+
+    window.parent.addEventListener('shouldSaveSignatureChanged', listener);
+
+    return () => {
+      window.parent.removeEventListener('shouldSaveSignatureChanged', listener);
+    };
+  }, []);
 
   useEffect(() => {
     const signatureTool = core.getTool('AnnotationCreateSignature');
@@ -83,7 +93,7 @@ const InkSignature = ({
     signatureTool.clearSignatureCanvas();
     freeHandPathsRef.current = null;
     annotIdRef.current = null;
-    setDrawn(false)
+    setDrawn(false);
   }, []);
 
   const handleFinishDrawing = async () => {
@@ -107,7 +117,12 @@ const InkSignature = ({
     }
     // hack for tool styles for signature not being on state
     forceUpdate();
-  }
+  };
+
+  const handleSaveSignatureChange = e => {
+    const newValue = e.target.checked;
+    window.parent.handleSaveSignature?.(newValue);
+  };
 
   const deepCopy = paths => {
     const pathsCopy = [];
@@ -131,14 +146,9 @@ const InkSignature = ({
       <Measure bounds onResize={({ bounds }) => setDimension(bounds)}>
         {({ measureRef }) => (
           <div className="ink-signature" ref={measureRef}>
-            <Swipeable
-              onSwiping={({ event }) => event.stopPropagation()} 
-              className="canvas-colorpalette-container"
-            >
+            <Swipeable onSwiping={({ event }) => event.stopPropagation()} className="canvas-colorpalette-container">
               <div className="ink-signature-canvas-container">
-                <div className="ink-signature-sign-here">
-                  {drawn ? '' : t('message.signHere')}
-                </div>
+                <div className="ink-signature-sign-here">{drawn ? '' : t('message.signHere')}</div>
                 <canvas
                   className="ink-signature-canvas"
                   onMouseUp={handleFinishDrawing}
@@ -149,22 +159,31 @@ const InkSignature = ({
               </div>
               <div className="colorpalette-clear-container">
                 <ColorPalette
-                    color={toolStyles['StrokeColor']}
-                    property="StrokeColor"
-                    onStyleChange={(property, value) => handleColorInputChange(property, value)}
-                    overridePalette2={['#000000', '#4E7DE9', '#E44234']}
+                  color={toolStyles['StrokeColor']}
+                  property="StrokeColor"
+                  onStyleChange={(property, value) => handleColorInputChange(property, value)}
+                  overridePalette2={['#000000', '#4E7DE9', '#E44234']}
                 />
                 <button className="signature-clear" onClick={clearCanvas} disabled={!drawn}>
                   {t('action.clear')}
                 </button>
-              </div>              
+              </div>
             </Swipeable>
           </div>
         )}
       </Measure>
       <div
         className="footer"
+        style={{
+          justifyContent: 'space-between',
+        }}
       >
+        <Choice
+          className={`checkbox`}
+          label={'Save Signature'}
+          onChange={handleSaveSignatureChange}
+          checked={shouldSaveSignature}
+        />
         <button className="signature-create" onClick={createSignature} disabled={!drawn}>
           {t('action.create')}
         </button>

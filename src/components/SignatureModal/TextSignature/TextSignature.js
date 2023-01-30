@@ -29,11 +29,15 @@ const TEXT_CLIP_PADDING = 100;
 
 const useForceUpdate = () => {
   const [, setIt] = useState(false);
-  return () => setIt((it) => !it);
+  return () => setIt(it => !it);
 };
 
-const parseInitialsFromFullSignature = (fullSiganture) => {
-  return fullSiganture?.split(' ').map((x) => x[0]).join('').toUpperCase();
+const parseInitialsFromFullSignature = fullSiganture => {
+  return fullSiganture
+    ?.split(' ')
+    .map(x => x[0])
+    .join('')
+    .toUpperCase();
 };
 
 const getSignatureLength = (text, fontSize, fontFamily) => {
@@ -103,7 +107,7 @@ const TextSignature = ({
   enableCreateButton,
   isInitialsModeEnabled = false,
 }) => {
-  const fonts = useSelector((state) => selectors.getSignatureFonts(state));
+  const fonts = useSelector(state => selectors.getSignatureFonts(state));
   const [fullSignature, setFullSiganture] = useState('');
   const [initials, setInitials] = useState('');
   const [isDefaultValue, setIsDefaultValue] = useState(true);
@@ -210,10 +214,10 @@ const TextSignature = ({
     const signatureValue = fullSignature || '';
     if (signatureValue.trim()) {
       const base64 = cropImageFromCanvas(canvas);
-      signatureToolArray.forEach((tool) => tool.setSignature(base64));
+      signatureToolArray.forEach(tool => tool.setSignature(base64));
       enableCreateButton();
     } else {
-      signatureToolArray.forEach((tool) => tool.setSignature(null));
+      signatureToolArray.forEach(tool => tool.setSignature(null));
       disableCreateButton();
     }
   };
@@ -225,15 +229,15 @@ const TextSignature = ({
     const initialsValue = initials || '';
     if (initialsValue.trim()) {
       const base64 = cropImageFromCanvas(canvas);
-      signatureToolArray.forEach((tool) => tool.setInitials(base64));
+      signatureToolArray.forEach(tool => tool.setInitials(base64));
       enableCreateButton();
     } else {
-      signatureToolArray.forEach((tool) => tool.setInitials(null));
+      signatureToolArray.forEach(tool => tool.setInitials(null));
       disableCreateButton();
     }
   };
 
-  const handleFullSignatureChange = (e) => {
+  const handleFullSignatureChange = e => {
     setIsDefaultValue(false);
     // Use regex instead of 'trimStart' for IE11 compatibility
     const value = e.target.value.replace(/^\s+/g, '');
@@ -245,7 +249,7 @@ const TextSignature = ({
     setFontSize(newFontSize);
   };
 
-  const handleInitialsChange = (e) => {
+  const handleInitialsChange = e => {
     setIsDefaultValue(false);
     // Use regex instead of 'trimStart' for IE11 compatibility
     const initials = e.target.value.replace(/^\s+/g, '');
@@ -260,7 +264,7 @@ const TextSignature = ({
     forceUpdate();
   };
 
-  const handleDropdownSelectionChange = (font) => {
+  const handleDropdownSelectionChange = font => {
     setSelectedFontFamily(font);
     const newFontSize = scaleFontSize(fullSignature, font);
     setFontSize(newFontSize);
@@ -276,16 +280,10 @@ const TextSignature = ({
         })}
         style={{ fontFamily: selectedFontFamily, fontSize: FONT_SIZE, color: fontColor.toHexString() }}
       >
-        <div
-          className="text-container"
-          ref={hiddenFullSignatureRef}
-        >
+        <div className="text-container" ref={hiddenFullSignatureRef}>
           {fullSignature}
         </div>
-        <div
-          className="text-container"
-          ref={hiddenInitialsRef}
-        >
+        <div className="text-container" ref={hiddenInitialsRef}>
           {initials}
         </div>
       </div>
@@ -311,9 +309,7 @@ const TextSignature = ({
             />
           </label>
           <div className="signature-input-footer">
-            <div className='signature-prompt'>
-              {t('option.signatureModal.typeSignature')}
-            </div>
+            <div className="signature-prompt">{t('option.signatureModal.typeSignature')}</div>
             <button
               className="footer-signature-clear"
               onClick={() => setFullSiganture('')}
@@ -335,9 +331,7 @@ const TextSignature = ({
             />
           </label>
           <div className="signature-input-footer">
-            <div className='signature-prompt'>
-              {t('option.signatureModal.typeInitial')}
-            </div>
+            <div className="signature-prompt">{t('option.signatureModal.typeInitial')}</div>
             <button
               className="footer-signature-clear"
               onClick={() => setInitials('')}
@@ -353,20 +347,6 @@ const TextSignature = ({
       <canvas ref={initialsHiddenCanvasRef} />
       <div className="colorpalette-clear-container">
         <div className="signature-style-options">
-          <Dropdown
-            items={fonts.map((font) => ({ font, value: `${fullSignature} ${isInitialsModeEnabled ? initials : ''}` }))}
-            getCustomItemStyle={(item) => ({ fontFamily: item.font })}
-            getKey={(item) => item.font}
-            getDisplayValue={(item) => {
-              return item.value || item.font;
-            }}
-            onClickItem={handleDropdownSelectionChange}
-            currentSelectionKey={selectedFontFamily || fonts[0]}
-            maxHeight={isMobile() ? 80 : null}
-            dataElement="text-signature-font-dropdown"
-          />
-          <div className="placeholder-dropdown"></div>
-          <div className="divider"></div>
           <ColorPalette
             color={fontColor}
             property="fontColor"

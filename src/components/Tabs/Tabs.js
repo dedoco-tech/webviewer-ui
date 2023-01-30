@@ -9,12 +9,8 @@ import selectors from 'selectors';
 const TabsContext = React.createContext();
 
 // eslint-disable-next-line arrow-body-style
-export const Tabs = React.memo((props) => {
-  return (
-    <TabsContext.Provider value={props.id}>
-      {props.children}
-    </TabsContext.Provider>
-  );
+export const Tabs = React.memo(props => {
+  return <TabsContext.Provider value={props.id}>{props.children}</TabsContext.Provider>;
 });
 
 Tabs.displayName = 'Tabs';
@@ -25,10 +21,10 @@ Tabs.propTypes = {
 
 export const Tab = ({ children, dataElement }) => {
   const id = useContext(TabsContext);
-  const [isDisabled, isSelected] = useSelector((state) => [
-    selectors.isElementDisabled(state, dataElement),
-    selectors.getSelectedTab(state, id) === dataElement,
-  ], shallowEqual);
+  const [isDisabled, isSelected] = useSelector(
+    state => [selectors.isElementDisabled(state, dataElement), selectors.getSelectedTab(state, id) === dataElement],
+    shallowEqual,
+  );
   const dispatch = useDispatch();
 
   let propsToInject = {
@@ -66,11 +62,9 @@ Tab.propTypes = {
 };
 
 export const TabHeader = ({ dataElement, children }) => {
-  const [isDisabled] = useSelector((state) => [
-    selectors.isElementDisabled(state, dataElement),
-  ]);
+  const [isDisabled] = useSelector(state => [selectors.isElementDisabled(state, dataElement)]);
 
-  return (<div data-element={dataElement}>{isDisabled ? null : children}</div>);
+  return <div data-element={dataElement}>{isDisabled ? null : children}</div>;
 };
 
 TabHeader.propTypes = {
@@ -80,17 +74,16 @@ TabHeader.propTypes = {
 
 export const TabPanel = ({ children, dataElement }) => {
   const id = useContext(TabsContext);
-  const [isDisabled, isSelected] = useSelector((state) => [
-    selectors.isElementDisabled(state, dataElement),
-    selectors.getSelectedTab(state, id).includes(dataElement),
-  ], shallowEqual);
+  const [isDisabled, isSelected] = useSelector(
+    state => [
+      selectors.isElementDisabled(state, dataElement),
+      selectors.getSelectedTab(state, id).includes(dataElement),
+    ],
+    shallowEqual,
+  );
 
   return isDisabled ? null : (
-    <div
-      className="tab-panel"
-      data-element={dataElement}
-      style={{ display: isSelected ? '' : 'none' }}
-    >
+    <div className="tab-panel" data-element={dataElement} style={{ display: isSelected ? '' : 'none' }}>
       {typeof children.type === 'function'
         ? React.cloneElement(children, { isTabPanelSelected: isSelected })
         : children}

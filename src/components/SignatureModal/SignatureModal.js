@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { FocusTrap } from '@pdftron/webviewer-react-toolkit';
+import { Choice } from '@pdftron/webviewer-react-toolkit';
 
 import { Tabs, Tab, TabPanel } from 'components/Tabs';
 import InkSignature from 'components/SignatureModal/InkSignature';
@@ -17,6 +18,7 @@ import { Swipeable } from 'react-swipeable';
 import './SignatureModal.scss';
 import SignatureModes from 'constants/signatureModes';
 import SavedSignatures from 'components/SignatureModal/SavedSignatures';
+import DedocoSavedSignature from 'components/SignatureModal/DedocoSavedSignature';
 import DataElements from 'constants/dataElement';
 
 const SignatureModal = () => {
@@ -31,7 +33,7 @@ const SignatureModal = () => {
     selectedTab,
     displayedSignatures,
     savedInitials,
-  ] = useSelector((state) => [
+  ] = useSelector(state => [
     selectors.isElementDisabled(state, 'signatureModal'),
     selectors.isElementOpen(state, 'signatureModal'),
     selectors.getActiveToolName(state),
@@ -47,16 +49,12 @@ const SignatureModal = () => {
   const signatureToolArray = core.getToolsFromAllDocumentViewers('AnnotationCreateSignature');
   const [createButtonDisabled, setCreateButtonDisabled] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isDedocoSaveSignatureChecked, setIsDedocoSaveSignatureChecked] = useState(false);
 
   // Hack to close modal if hotkey to open other tool is used.
   useEffect(() => {
     if (activeToolName !== 'AnnotationCreateSignature') {
-      dispatch(
-        actions.closeElements([
-          'signatureModal',
-          'signatureOverlay',
-        ]),
-      );
+      dispatch(actions.closeElements(['signatureModal', 'signatureOverlay']));
     }
   }, [dispatch, activeToolName]);
 
@@ -65,26 +63,31 @@ const SignatureModal = () => {
 
   useEffect(() => {
     if (isOpen) {
-      dispatch(
-        actions.closeElements([
-          'printModal',
-          'loadingModal',
-          'progressModal',
-          'errorModal',
-        ]),
-      );
+      dispatch(actions.closeElements(['printModal', 'loadingModal', 'progressModal', 'errorModal']));
     }
   }, [dispatch, isOpen]);
+
+  const handleDedocoSaveSignatureChange = e => {
+    const newValue = e.target.checked;
+    setIsDedocoSaveSignatureChecked(newValue);
+    window.parent.handleSaveSignature?.(newValue);
+  };
 
   const closeModal = () => {
     for (const signatureTool of signatureToolArray) {
       signatureTool.clearLocation();
       signatureTool.setSignature(null);
     }
+    const modalClosedEvent = new CustomEvent('SignatureModalClosed');
+    window.parent.dispatchEvent(modalClosedEvent);
     dispatch(actions.closeElement('signatureModal'));
+
+    setIsDedocoSaveSignatureChecked(false);
   };
 
   const createSignatures = async () => {
+    setIsDedocoSaveSignatureChecked(false);
+
     createFullSignature();
 
     if (isInitialsModeEnabled) {
@@ -97,7 +100,6 @@ const SignatureModal = () => {
     for (let i = 1; i < signatureToolArray.length; i++) {
       await signatureToolArray[i].setSignature(signatureToolArray[0].getFullSignatureAnnotation());
     }
-
     const signatureTool = signatureToolArray[activeDocumentViewerKey - 1];
 
     if (!(await signatureTool.isEmptySignature())) {
@@ -106,11 +108,9 @@ const SignatureModal = () => {
       if (signatureMode === SignatureModes.FULL_SIGNATURE) {
         if (signatureTool.hasLocation()) {
           await signatureTool.addSignature();
-        } else {
-          for (const signatureTool of signatureToolArray) {
-            await signatureTool.showPreview();
-          }
         }
+
+        signatureTool.annot = null; // Clears the annotation on cursor for sign all feature
 
         dispatch(actions.closeElement('signatureModal'));
       }
@@ -143,9 +143,11 @@ const SignatureModal = () => {
     }
   };
 
-  const setSignature = async (index) => {
+  const setSignature = async index => {
     const isFullSignature = signatureMode === SignatureModes.FULL_SIGNATURE;
-    dispatch(actions[isFullSignature ? 'setSelectedDisplayedSignatureIndex' : 'setSelectedDisplayedInitialsIndex'](index));
+    dispatch(
+      actions[isFullSignature ? 'setSelectedDisplayedSignatureIndex' : 'setSelectedDisplayedInitialsIndex'](index),
+    );
     const { annotation } = isFullSignature ? displayedSignatures[index] : savedInitials[index];
     core.setToolMode('AnnotationCreateSignature');
     for (const signatureTool of signatureToolArray) {
@@ -174,21 +176,15 @@ const SignatureModal = () => {
     closed: !isOpen,
   });
   const isSavedTabSelected = selectedTab === 'savedSignaturePanelButton';
+  const isDedocoSavedTabSelected = selectedTab === 'dedocoSavedSignaturePanelButton';
 
   return isDisabled ? null : (
-    <Swipeable
-      onSwipedUp={closeModal}
-      onSwipedDown={closeModal}
-      preventDefaultTouchmoveEvent
-    >
+    <Swipeable onSwipedUp={closeModal} onSwipedDown={closeModal} preventDefaultTouchmoveEvent>
       <FocusTrap locked={isOpen}>
-        <div
-          className={modalClass}
-          data-element="signatureModal"
-        >
+        <div className={modalClass} data-element="signatureModal">
           <div
             className={classNames('container', { 'include-initials': isInitialsModeEnabled })}
-            onMouseDown={(e) => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             <div className="swipe-indicator" />
             <Tabs id="signatureModal">
@@ -204,34 +200,39 @@ const SignatureModal = () => {
                   />
                 </div>
                 <div className="tab-list">
-                  {!isSavedTabDisabled && <Tab dataElement="savedSignaturePanelButton">
-                    <button className="tab-options-button">
-                      {t('option.type.saved')}
-                    </button>
-                  </Tab>}
+                  {!isSavedTabDisabled && (
+                    <React.Fragment>
+                      <Tab dataElement="savedSignaturePanelButton">
+                        <button className="tab-options-button">{t('option.type.saved')}</button>
+                      </Tab>
+                      <div className="tab-options-divider" />
+                    </React.Fragment>
+                  )}
+                  <Tab dataElement="dedocoSavedSignaturePanelButton">
+                    <button className="tab-options-button">{t('option.type.saved')}</button>
+                  </Tab>
                   <div className="tab-options-divider" />
                   <Tab dataElement="inkSignaturePanelButton">
-                    <button className="tab-options-button">
-                      {t('action.draw')}
-                    </button>
+                    <button className="tab-options-button">{t('action.draw')}</button>
                   </Tab>
                   <div className="tab-options-divider" />
                   <Tab dataElement="textSignaturePanelButton">
-                    <button className="tab-options-button">
-                      {t('action.type')}
-                    </button>
+                    <button className="tab-options-button">{t('action.type')}</button>
                   </Tab>
                   <div className="tab-options-divider" />
                   <Tab dataElement="imageSignaturePanelButton">
-                    <button className="tab-options-button">
-                      {t('action.upload')}
-                    </button>
+                    <button className="tab-options-button">{t('action.upload')}</button>
                   </Tab>
                 </div>
               </div>
-              {!isSavedTabDisabled && <TabPanel dataElement="savedSignaturePanel">
-                <SavedSignatures {...{ selectedIndex, setSelectedIndex }} />
-              </TabPanel>}
+              {!isSavedTabDisabled && (
+                <TabPanel dataElement="savedSignaturePanel">
+                  <SavedSignatures {...{ selectedIndex, setSelectedIndex }} />
+                </TabPanel>
+              )}
+              <TabPanel dataElement="dedocoSavedSignaturePanel">
+                <DedocoSavedSignature isModalOpen={isOpen} createSignature={createSignatures} />
+              </TabPanel>
               <TabPanel dataElement="inkSignaturePanel">
                 <InkSignature
                   isModalOpen={isOpen}
@@ -256,12 +257,32 @@ const SignatureModal = () => {
                   isInitialsModeEnabled={isInitialsModeEnabled}
                 />
               </TabPanel>
-              <div className="footer">
-                <button className="signature-create" onClick={isSavedTabSelected ? () => setSignature(selectedIndex) : createSignatures}
-                  disabled={isSavedTabSelected ? (!isSavedTabSelected || !displayedSignatures.length || !isOpen) : (!(isOpen) || createButtonDisabled)}>
-                  {t(isSavedTabSelected ? 'action.apply' : 'action.create')}
-                </button>
-              </div>
+              {!isDedocoSavedTabSelected && (
+                <div
+                  className="footer"
+                  style={{
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Choice
+                    className="checkbox"
+                    label="Save Signature"
+                    checked={isDedocoSaveSignatureChecked}
+                    onChange={handleDedocoSaveSignatureChange}
+                  />
+                  <button
+                    className="signature-create"
+                    onClick={isSavedTabSelected ? () => setSignature(selectedIndex) : createSignatures}
+                    disabled={
+                      isSavedTabSelected
+                        ? !isSavedTabSelected || !displayedSignatures.length || !isOpen
+                        : !isOpen || createButtonDisabled
+                    }
+                  >
+                    {t(isSavedTabSelected ? 'action.apply' : 'action.create')}
+                  </button>
+                </div>
+              )}
             </Tabs>
           </div>
         </div>

@@ -13,7 +13,7 @@ import './InkSignature.scss';
 
 const useForceUpdate = () => {
   const [, setIt] = useState(false);
-  return () => setIt((it) => !it);
+  return () => setIt(it => !it);
 };
 
 const propTypes = {
@@ -29,7 +29,7 @@ const InkSignature = ({
   isTabPanelSelected,
   disableCreateButton,
   enableCreateButton,
-  isInitialsModeEnabled = false
+  isInitialsModeEnabled = false,
 }) => {
   const fullSignatureCanvas = useRef();
   const initialsCanvas = useRef();
@@ -80,7 +80,6 @@ const InkSignature = ({
       }
     }
 
-
     async function resizeInitialsCanvas() {
       if (isModalOpen && isTabPanelSelected && isInitialsModeEnabled) {
         const signatureToolArray = core.getToolsFromAllDocumentViewers('AnnotationCreateSignature');
@@ -93,7 +92,7 @@ const InkSignature = ({
 
     function checkEnableCreateButton() {
       if (isInitialsModeEnabled) {
-        (fullSignaturePathsRef.current && initialsPathsRef.current) ? enableCreateButton() : disableCreateButton();
+        fullSignaturePathsRef.current && initialsPathsRef.current ? enableCreateButton() : disableCreateButton();
       } else {
         fullSignaturePathsRef.current ? enableCreateButton() : disableCreateButton();
       }
@@ -179,7 +178,7 @@ const InkSignature = ({
     forceUpdate();
   };
 
-  const deepCopy = (paths) => {
+  const deepCopy = paths => {
     const pathsCopy = [];
     for (let i = 0; i < paths.length; ++i) {
       for (let j = 0; j < paths[i].length; ++j) {
@@ -201,12 +200,9 @@ const InkSignature = ({
     <Measure bounds onResize={({ bounds }) => setDimension(bounds)}>
       {({ measureRef }) => (
         <div className="ink-signature" ref={measureRef}>
-          <Swipeable
-            onSwiping={({ event }) => event.stopPropagation()}
-            className="canvas-colorpalette-container"
-          >
-            <div className='signature-and-initials-container'>
-              <div className='signature-input full-signature'>
+          <Swipeable onSwiping={({ event }) => event.stopPropagation()} className="canvas-colorpalette-container">
+            <div className="signature-and-initials-container">
+              <div className="signature-input full-signature">
                 <canvas
                   className="ink-signature-canvas"
                   onMouseUp={handleFinishDrawingFullSignature}
@@ -215,15 +211,17 @@ const InkSignature = ({
                   ref={fullSignatureCanvas}
                 />
                 <div className="signature-input-footer">
-                  <div className="signature-prompt">
-                    {t('option.signatureModal.drawSignature')}
-                  </div>
-                  <button className="footer-signature-clear" onClick={clearFullSignatureCanvas} disabled={!fullSignatureDrawn}>
+                  <div className="signature-prompt">{t('option.signatureModal.drawSignature')}</div>
+                  <button
+                    className="footer-signature-clear"
+                    onClick={clearFullSignatureCanvas}
+                    disabled={!fullSignatureDrawn}
+                  >
                     {t('action.clear')}
                   </button>
                 </div>
               </div>
-              <div className='signature-input initials' style={initialsContainerStyle}>
+              <div className="signature-input initials" style={initialsContainerStyle}>
                 <canvas
                   className="ink-signature-canvas"
                   onMouseUp={handleFinishDrawingInitials}
@@ -232,9 +230,7 @@ const InkSignature = ({
                   ref={initialsCanvas}
                 />
                 <div className="signature-input-footer">
-                  <div className="signature-prompt">
-                    {t('option.signatureModal.drawInitial')}
-                  </div>
+                  <div className="signature-prompt">{t('option.signatureModal.drawInitial')}</div>
                   <button className="footer-signature-clear" onClick={clearInitialsCanvas} disabled={!initialsDrawn}>
                     {t('action.clear')}
                   </button>
@@ -243,12 +239,6 @@ const InkSignature = ({
             </div>
             <div className="colorpalette-clear-container">
               <div className="signature-style-options">
-                <Dropdown
-                  disabled={true}
-                  placeholder={'Text Styles'}
-                />
-                <div className="placeholder-dropdown"></div>
-                <div className="divider"></div>
                 <ColorPalette
                   color={toolStyles['StrokeColor']}
                   property="StrokeColor"
